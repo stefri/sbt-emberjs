@@ -1,0 +1,34 @@
+# Eclipse
+.settings
+.metadata
+.history
+Servers
+bin
+.scala_dependencies
+.target
+.cache
+
+# Simple Build Tool
+lib_managed/
+project/boot/
+project/build/target/
+project/plugins/project/build.properties
+src_managed/
+target
+
+# Mac OSX
+.DS_Store
+
+# Vi
+*.swp
+*.un~
+
+# TextMate
+*.tmproj
+tmtags
+
+# BPM
+**.bpm*
+**.sass-cache*
+**assets*
+**vendor*
