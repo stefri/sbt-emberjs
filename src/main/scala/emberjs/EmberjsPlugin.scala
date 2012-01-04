@@ -41,40 +41,37 @@ object EmberjsPlugin extends Plugin {
     IO.write(js, spade, charset)
     stream.close
 
-    // FIXME Wrap dependencies in spade handlers
-
     // Include libraries
     (libs ** ("*.js")).get.foreach { f =>
       log.info("Libs: Found " + f)
-      IO.append(js, createJavascriptArtifact(name, f, libs, charset))
+      IO.append(js, createJavascriptArtifact("lib/", f, libs, charset))
     }
 
     // Include sources
     (sources ** ("*.js")).get.foreach { f =>
       log.info("Sources: Found " + f)
-      IO.append(js, createJavascriptArtifact(name, f, sources, charset))
+      IO.append(js, createJavascriptArtifact(name + "/", f, sources, charset))
     }
 
     // Include managed sources
     (managed ** ("*.js")).get.foreach { f =>
       log.info("Managed Sources: Found " + f)
-      IO.append(js, createJavascriptArtifact(name, f, managed, charset))
+      IO.append(js, createJavascriptArtifact(name + "/", f, managed, charset))
     }
 
     // Include handlebars templates
     (templates ** ("*.handlebars")).get.foreach { f =>
       log.info("Templates: Found " + f)
-      IO.append(js, createHandlebarsArtifact(name, f, templates, charset))
+      IO.append(js, createHandlebarsArtifact(name + "/~template/", f, templates, charset))
     }
 
-    // TODO Return an aggregated spade enabled javascript file
     Seq( js )
   }
 
-  private def spadeWrapper(app: String, prefix: String, file: File, dir: File) = {
-    val name = prefix + 
+  private def spadeWrapper(prefix: String, file: File, dir: File) = {
+    val spade = prefix + 
       file.absolutePath.substring(dir.absolutePath.length()+1, file.absolutePath.lastIndexOf("."))
-    val spade = if (name.contains("/")) app + "/~" + name else app + "/" + name;
+      .replaceFirst("-[0-9]+\\.[0-9]+.*$", "");
     
     """
 spade.register("%s", function(require, exports,__module,ARGV,ENV,__filename){
@@ -83,15 +80,15 @@ spade.register("%s", function(require, exports,__module,ARGV,ENV,__filename){
     """.format(spade, "%s")
   }
 
-  private def createJavascriptArtifact(app: String, file: File, dir: File, charset: Charset) = {
-    spadeWrapper(app, "", file, dir).format(IO.read(file, charset))
+  private def createJavascriptArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
+    spadeWrapper(prefix, file, dir).format(IO.read(file, charset))
   }
 
-  private def createHandlebarsArtifact(app: String, file: File, dir: File, charset: Charset) = {
-    // TODO Maybe precompile the handlebars templates to improve the performance
+  private def createHandlebarsArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
+    // TODO Precompile the handlebars templates to improve the performance in production mode
     val template = IO.read(file, charset).replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"")
     val content = """return Ember.Handlebars.compile("%s");""".format(template)
-    spadeWrapper(app, "template/", file, dir).format(content)
+    spadeWrapper(prefix, file, dir).format(content)
   }
 
   private def emberjsAggregationTask = 
@@ -132,7 +129,6 @@ spade.register("%s", function(require, exports,__module,ARGV,ENV,__filename){
       librariesDirectory in emberjs <<= (sourceDirectory in c) { _ / "emberjs" / "libs" },
       sourceDirectory in emberjs <<= (sourceDirectory in c) { _ / "emberjs" / "js" },
       templatesDirectory in emberjs <<= (sourceDirectory in c) { _ / "emberjs" / "templates" },
-      //coffeeDirectory in emberjs <<= (crossTarget in c) { _ / "emberjs_managed" },
       coffeeDirectory in emberjs <<= (crossTarget in c) { _ / "resource_managed" / "main" / "js" },
       resourceManaged in emberjs <<= (resourceManaged in c) { _ / "assets" },
       cleanFiles in emberjs <<= (resourceManaged in emberjs)(_ :: Nil),
