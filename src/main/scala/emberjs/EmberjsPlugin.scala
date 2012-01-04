@@ -42,28 +42,36 @@ object EmberjsPlugin extends Plugin {
     stream.close
 
     // Include libraries
-    (libs ** ("*.js")).get.foreach { f =>
-      log.info("Libs: Found " + f)
+    val libFiles = (libs ** ("*.js")).get 
+    libFiles foreach { f =>
       IO.append(js, createJavascriptArtifact("lib/", f, libs, charset))
+      log.debug("[Emberjs][Library] Appended " + f)
     }
+    log.info("[Emberjs] Appended %d libraries to the javascript output".format(libFiles.length))
 
     // Include sources
-    (sources ** ("*.js")).get.foreach { f =>
-      log.info("Sources: Found " + f)
+    val sourceFiles = (sources ** ("*.js")).get
+    sourceFiles foreach { f =>
       IO.append(js, createJavascriptArtifact(name + "/", f, sources, charset))
+      log.debug("[Emberjs][Source] Appended " + f)
     }
+    log.info("[Emberjs] Appended %d source files to the javascript output".format(sourceFiles.length))
 
     // Include managed sources
-    (managed ** ("*.js")).get.foreach { f =>
-      log.info("Managed Sources: Found " + f)
+    val managedFiles = (managed ** ("*.js")).get
+    managedFiles foreach { f =>
       IO.append(js, createJavascriptArtifact(name + "/", f, managed, charset))
+      log.debug("[Emberjs][Managed Source] Appended " + f)
     }
+    log.info("[Emberjs] Appended %d managed source files to the javascript output".format(managedFiles.length))
 
     // Include handlebars templates
-    (templates ** ("*.handlebars")).get.foreach { f =>
-      log.info("Templates: Found " + f)
+    val templateFiles = (templates ** ("*.handlebars")).get 
+     templateFiles foreach { f =>
       IO.append(js, createHandlebarsArtifact(name + "/~template/", f, templates, charset))
+      log.debug("[Emberjs][Template] Appended " + f)
     }
+    log.info("[Emberjs] Appended %d handlebars templates to the javascript output".format(templateFiles.length))
 
     Seq( js )
   }
@@ -106,13 +114,9 @@ spade.register("%s", function(require, exports,__module,ARGV,ENV,__filename){
   }
 
   private def emberjsSourcesTask = 
-    (librariesDirectory in emberjs, sourceDirectory in emberjs, templatesDirectory in emberjs, 
-      coffeeDirectory in emberjs) map {
-        (libDir, sourceDir, templateDir, managedDir) => 
-            ((libDir ** ("*.js")).get.toSet).toSeq ++
-            ((sourceDir ** (".js")).get.toSet).toSeq ++
-            ((managedDir ** (".js")).get.toSet).toSeq ++
-            ((templateDir ** (".handlebars")).get.toSet).toSeq
+    (streams, librariesDirectory in emberjs, sourceDirectory in emberjs, templatesDirectory in emberjs) map {
+        (out, libDir, sourceDir, templateDir) => 
+            ((libDir +++ sourceDir +++ templateDir) ** ("*.js" || "*.handlebars")).get
   }
   
   def coreEmberjsSettings: Seq[Setting[_]] = (Seq(

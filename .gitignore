@@ -7,6 +7,8 @@ bin
 .scala_dependencies
 .target
 .cache
+.classpath
+.project
 
 # Simple Build Tool
 lib_managed/
