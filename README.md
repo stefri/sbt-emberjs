@@ -13,7 +13,7 @@ Depend on the plugin: `./project/plugins.sbt`
 
     resolvers += "stefri" at "http://stefri.github.com/repo/releases"
 
-    addSbtPlugin("com.github.stefri" % "sbt-emberjs" % "0.1")
+    addSbtPlugin("com.github.stefri" % "sbt-emberjs" % "0.2")
 
 Ember picks it's libraries form `src/main/emberjs/libs`, the source
 files either from `src/main/emberjs/js` or `resource_managed/main/js`.
