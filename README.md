@@ -1,6 +1,6 @@
 # sbt-emberjs
 
-A plugin for sbt-0.11.x that aggregates javascript code, wrappes each
+A plugin for sbt-0.12.1 that aggregates javascript code, wrappes each
 file in a spade handler and processes handlebars templates files. The
 plugin is best used together with [Ember.js](http://emberjs.com) a
 javascript framework derived from SproutCore and formerly known as
@@ -13,7 +13,7 @@ Depend on the plugin: `./project/plugins.sbt`
 
     resolvers += "stefri" at "http://stefri.github.com/repo/releases"
 
-    addSbtPlugin("com.github.stefri" % "sbt-emberjs" % "0.2")
+    addSbtPlugin("com.github.stefri" % "sbt-emberjs" % "0.4")
 
 Ember picks it's libraries form `src/main/emberjs/libs`, the source
 files either from `src/main/emberjs/js` or `resource_managed/main/js`.
