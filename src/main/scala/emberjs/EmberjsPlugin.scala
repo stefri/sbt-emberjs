@@ -36,7 +36,7 @@ object EmberjsPlugin extends Plugin {
     val js = target / "application.js"
 
     // Include "minispade" as first dependency. It is delivered in the plugins resource folder.
-    val stream = getClass().getResourceAsStream("/loader.js")
+    val stream = getClass().getResourceAsStream("/minispade.js")
     val spade = IO.readStream(stream, charset)
     IO.write(js, spade, charset)
     stream.close
@@ -48,6 +48,15 @@ object EmberjsPlugin extends Plugin {
       log.debug("[Emberjs][Library] Appended " + f)
     }
     log.info("[Emberjs] Appended %d libraries to the javascript output".format(libFiles.length))
+
+    // Include handlebars templates
+    val templateFiles = (templates ** ("*.handlebars")).get 
+    val handlebarsJs = templateFiles.foldLeft("") { (hjs, f) => 
+      log.debug("[Emberjs][Template] Appended " + f)
+      hjs + "\n" + createHandlebarsArtifact(name + "/~templates/", f, templates, charset)
+    }
+    IO.append(js, loaderWrapper("templates").format(handlebarsJs))
+    log.info("[Emberjs] Appended %d handlebars templates to the javascript output".format(templateFiles.length))
 
     // Include sources
     val sourceFiles = (sources ** ("*.js")).get
@@ -65,38 +74,38 @@ object EmberjsPlugin extends Plugin {
     }
     log.info("[Emberjs] Appended %d managed source files to the javascript output".format(managedFiles.length))
 
-    // Include handlebars templates
-    val templateFiles = (templates ** ("*.handlebars")).get 
-     templateFiles foreach { f =>
-      IO.append(js, createHandlebarsArtifact(name + "/~templates/", f, templates, charset))
-      log.debug("[Emberjs][Template] Appended " + f)
-    }
-    log.info("[Emberjs] Appended %d handlebars templates to the javascript output".format(templateFiles.length))
-
     Seq( js )
   }
 
-  private def loaderWrapper(prefix: String, file: File, dir: File) = {
-    val moduleId = prefix + 
+  private def getModuleId(prefix: String, file: File, dir: File) = {
+    prefix + 
       file.absolutePath.substring(dir.absolutePath.length()+1, file.absolutePath.lastIndexOf("."))
       .replaceFirst("-[0-9]+\\.[0-9]+.*$", "");
-    
+  }
+
+  private def loaderWrapper(prefix: String, file: File, dir: File): String = {
+    loaderWrapper(getModuleId(prefix, file, dir))
+  }
+
+  private def loaderWrapper(moduleId: String): String = {
     """
-loader.register('%s', function(require) {
+minispade.register('%s', function() {
     %s
 });
     """.format(moduleId, "%s")
   }
 
   private def createJavascriptArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
-    loaderWrapper(prefix, file, dir).format(IO.read(file, charset))
+    var raw = IO.read(file, charset)
+    raw = """\s*require\s*\(""".r.replaceAllIn(raw, "minispade.require(")
+    raw = """\s*requireAll\s*\(""".r.replaceAllIn(raw, "minispade.requireAll(")
+    loaderWrapper(prefix, file, dir).format(raw);
   }
 
   private def createHandlebarsArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
-    // TODO Precompile the handlebars templates to improve the performance in production mode
     val template = IO.read(file, charset).replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"")
-    val content = """return Ember.Handlebars.compile("%s");""".format(template)
-    loaderWrapper(prefix, file, dir).format(content)
+    val content = """Ember.Handlebars.compile("%s");""".format(template)
+    "Ember.TEMPLATES['%s']=%s".format(getModuleId(prefix, file, dir), content)
   }
 
   private def emberjsAggregationTask = 
