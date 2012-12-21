@@ -4,7 +4,7 @@ name := "sbt-emberjs"
 
 organization := "com.github.stefri"
 
-version := "0.2"
+version := "0.3"
 
 scalacOptions := Seq("-deprecation", "-unchecked")
 

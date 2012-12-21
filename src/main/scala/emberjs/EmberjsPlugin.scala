@@ -35,8 +35,8 @@ object EmberjsPlugin extends Plugin {
     target.mkdirs()
     val js = target / "application.js"
 
-    // Include "spade" as first dependency. It is delivered in the plugins resource folder.
-    val stream = getClass().getResourceAsStream("/spade-1.0.2.js")
+    // Include "minispade" as first dependency. It is delivered in the plugins resource folder.
+    val stream = getClass().getResourceAsStream("/loader.js")
     val spade = IO.readStream(stream, charset)
     IO.write(js, spade, charset)
     stream.close
@@ -68,7 +68,7 @@ object EmberjsPlugin extends Plugin {
     // Include handlebars templates
     val templateFiles = (templates ** ("*.handlebars")).get 
      templateFiles foreach { f =>
-      IO.append(js, createHandlebarsArtifact(name + "/~template/", f, templates, charset))
+      IO.append(js, createHandlebarsArtifact(name + "/~templates/", f, templates, charset))
       log.debug("[Emberjs][Template] Appended " + f)
     }
     log.info("[Emberjs] Appended %d handlebars templates to the javascript output".format(templateFiles.length))
@@ -76,27 +76,27 @@ object EmberjsPlugin extends Plugin {
     Seq( js )
   }
 
-  private def spadeWrapper(prefix: String, file: File, dir: File) = {
-    val spade = prefix + 
+  private def loaderWrapper(prefix: String, file: File, dir: File) = {
+    val moduleId = prefix + 
       file.absolutePath.substring(dir.absolutePath.length()+1, file.absolutePath.lastIndexOf("."))
       .replaceFirst("-[0-9]+\\.[0-9]+.*$", "");
     
     """
-spade.register("%s", function(require, exports,__module,ARGV,ENV,__filename){
+loader.register('%s', function(require) {
     %s
 });
-    """.format(spade, "%s")
+    """.format(moduleId, "%s")
   }
 
   private def createJavascriptArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
-    spadeWrapper(prefix, file, dir).format(IO.read(file, charset))
+    loaderWrapper(prefix, file, dir).format(IO.read(file, charset))
   }
 
   private def createHandlebarsArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
     // TODO Precompile the handlebars templates to improve the performance in production mode
     val template = IO.read(file, charset).replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"")
     val content = """return Ember.Handlebars.compile("%s");""".format(template)
-    spadeWrapper(prefix, file, dir).format(content)
+    loaderWrapper(prefix, file, dir).format(content)
   }
 
   private def emberjsAggregationTask = 
