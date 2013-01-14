@@ -53,7 +53,7 @@ object EmberjsPlugin extends Plugin {
     val templateFiles = (templates ** ("*.handlebars")).get 
     val handlebarsJs = templateFiles.foldLeft("") { (hjs, f) => 
       log.debug("[Emberjs][Template] Appended " + f)
-      hjs + "\n" + createHandlebarsArtifact(name + "/~templates/", f, templates, charset)
+      hjs + "\n" + createHandlebarsArtifact(f, templates, charset)
     }
     IO.append(js, loaderWrapper("templates").format(handlebarsJs))
     log.info("[Emberjs] Appended %d handlebars templates to the javascript output".format(templateFiles.length))
@@ -102,10 +102,11 @@ minispade.register('%s', function() {
     loaderWrapper(prefix, file, dir).format(raw);
   }
 
-  private def createHandlebarsArtifact(prefix: String, file: File, dir: File, charset: Charset) = {
+  private def createHandlebarsArtifact(file: File, dir: File, charset: Charset) = {
     val template = IO.read(file, charset).replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"")
     val content = """Ember.Handlebars.compile("%s");""".format(template)
-    "Ember.TEMPLATES['%s']=%s".format(getModuleId(prefix, file, dir), content)
+    val moduleId = getModuleId("", file, dir)
+    "Ember.TEMPLATES['%s']=%s".format(moduleId, content)
   }
 
   private def emberjsAggregationTask = 
